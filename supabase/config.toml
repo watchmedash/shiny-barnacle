@@ -1,0 +1,7 @@
+project_id = "rkszpcwfrawrvttaitxd"
+
+[functions.generate-story]
+verify_jwt = false
+
+[functions.generate-audio]
+verify_jwt = false
