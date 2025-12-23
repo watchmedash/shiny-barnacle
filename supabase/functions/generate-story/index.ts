@@ -8,21 +8,17 @@ const corsHeaders = {
 };
 
 const themes = [
-  "haunted house",
-  "paranormal encounter",
-  "psychological horror",
-  "supernatural creature",
-  "cursed object",
-  "abandoned asylum",
-  "demonic possession",
-  "urban legend",
-  "mysterious stranger",
-  "nightmare realm",
-  "forest horror",
-  "mirror dimension",
-  "time loop terror",
-  "doppelganger",
-  "vengeful spirit"
+  "wrong number call", "voicemail I don't remember leaving", "email from myself", "text from unknown number",
+  "something in the house", "apartment noise", "basement discovery", "attic find", "new house", "roommate acting off",
+  "late night drive", "gas station encounter", "motel stay", "wrong exit", "empty rest stop", "hitchhiker",
+  "neighbor acting strange", "someone following me", "coworker I don't remember", "person who looks like me",
+  "work alone at night", "security camera footage", "office after hours", "night shift",
+  "childhood memory", "old photograph", "home video", "diary entry I don't remember writing",
+  "hiking alone", "empty parking lot", "elevator ride", "hospital visit", "library at closing",
+  "item I don't own", "gift with no sender", "locked box", "old recording",
+  "power outage", "lost time", "déjà vu", "same day repeating",
+  "smart home glitch", "baby monitor static", "Ring doorbell footage", "GPS taking wrong route",
+  "wrong address", "Airbnb stay", "moving day", "house sitting", "dog barking at nothing"
 ];
 
 function hashString(str: string): string {
@@ -35,7 +31,6 @@ function hashString(str: string): string {
   return Math.abs(hash).toString(16);
 }
 
-// Get a random API key from the pool
 function getRandomApiKey(): string {
   const keys = [
     Deno.env.get('OPENAI_API_KEY_1'),
@@ -43,7 +38,7 @@ function getRandomApiKey(): string {
     Deno.env.get('OPENAI_API_KEY_3'),
     Deno.env.get('OPENAI_API_KEY_4'),
     Deno.env.get('OPENAI_API_KEY_5'),
-    Deno.env.get('OPENAI_API_KEY'), // fallback to original
+    Deno.env.get('OPENAI_API_KEY'),
   ].filter(Boolean) as string[];
 
   if (keys.length === 0) {
@@ -67,36 +62,35 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
-    // Get existing story count for variety
     const { count } = await supabase
       .from('stories')
       .select('*', { count: 'exact', head: true });
 
     const storyCount = count || 0;
 
-    // Select a random theme, weighted by story count to ensure variety
     const randomTheme = themes[(storyCount + Math.floor(Math.random() * themes.length)) % themes.length];
     const uniqueSeed = Date.now().toString(36) + Math.random().toString(36).substr(2);
 
-    const systemPrompt = `You are a master horror storyteller. Generate a terrifying, original horror/thriller story told from a first-person narrator's perspective. The story MUST:
+    const systemPrompt = `You write short, unsettling stories that feel like real accounts from ordinary people.
 
-1. Be EXACTLY between 1200-1500 characters (this is crucial for 2-minute audio)
-2. Start with a gripping hook that immediately draws the reader in
-3. Build suspense throughout with vivid, atmospheric descriptions
-4. Include an unexpected twist ending that sends chills down the spine
-5. Be completely original - never repeat plots, characters, or settings
-6. Use the theme "${randomTheme}" as inspiration but make it unique
-7. Write as "I" - the narrator experiencing these events
-8. FORMAT: Put each sentence on its own line with a blank line between sentences. This creates natural pauses for audio narration.
+Create a brief, creepy story (600-900 characters) that:
+- First-person, like someone telling a friend what happened
+- Mundane setting: home, work, commute, store
+- NO supernatural creatures, demons, ghosts, or fantasy
+- The horror is subtle - unexplained events, things that don't add up
+- Conversational tone, simple words
+- Theme hint: "${randomTheme}"
+- Each sentence on its own line, blank line between sentences
 
-IMPORTANT:
-- Count characters carefully - stay within 1200-1500 characters
-- Make every word count - no filler
-- The twist must be genuinely surprising
-- Create a sense of dread and unease throughout
-- CRITICAL: Each sentence must be followed by TWO line breaks (empty line between sentences)
+BAD (too dramatic): "Terror seized my heart as the shadow creature materialized"
+GOOD (realistic): "I found my front door unlocked. I always lock it."
 
-Unique seed for this story: ${uniqueSeed}`;
+BAD: "The demon's eyes glowed with hellfire"
+GOOD: "The man waved at me. I don't know any men who look like that."
+
+Keep it short. Leave things unexplained. Sound like a real person.
+
+Seed: ${uniqueSeed}`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -108,10 +102,10 @@ Unique seed for this story: ${uniqueSeed}`;
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Generate a unique horror story. Theme: ${randomTheme}. Story number: ${storyCount + 1}. Make it original and terrifying.` }
+          { role: 'user', content: `Write a short creepy story about: ${randomTheme}. Keep it under 900 characters. Sound real, not fictional.` }
         ],
-        max_tokens: 800,
-        temperature: 0.9,
+        max_tokens: 400,
+        temperature: 0.85,
       }),
     });
 
@@ -124,7 +118,6 @@ Unique seed for this story: ${uniqueSeed}`;
     const data = await response.json();
     const storyContent = data.choices[0].message.content;
 
-    // Generate a title
     const titleResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -134,21 +127,19 @@ Unique seed for this story: ${uniqueSeed}`;
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'Generate a short, creepy title (2-5 words) for this horror story. Just the title, nothing else.' },
+          { role: 'system', content: 'Generate a simple, understated title (2-4 words) for this story. No dramatic words like "terror", "horror", "nightmare". Just plain, slightly unsettling. Examples: "The Voicemail", "Wrong Floor", "Tuesday Night". Just the title.' },
           { role: 'user', content: storyContent }
         ],
-        max_tokens: 20,
-        temperature: 0.8,
+        max_tokens: 15,
+        temperature: 0.7,
       }),
     });
 
     const titleData = await titleResponse.json();
     const title = titleData.choices[0].message.content.replace(/"/g, '').trim();
 
-    // Create a hash of the content to check for duplicates
     const contentHash = hashString(storyContent.toLowerCase().replace(/\s+/g, ''));
 
-    // Check if similar story exists
     const { data: existingStory } = await supabase
       .from('stories')
       .select('id')
@@ -156,11 +147,10 @@ Unique seed for this story: ${uniqueSeed}`;
       .maybeSingle();
 
     if (existingStory) {
-      // If duplicate found, generate again recursively (rare case)
+
       console.log('Duplicate detected, story generation succeeded but matched existing');
     }
 
-    // Save story to database
     const { data: savedStory, error: saveError } = await supabase
       .from('stories')
       .insert({
@@ -174,7 +164,7 @@ Unique seed for this story: ${uniqueSeed}`;
 
     if (saveError) {
       console.error('Error saving story:', saveError);
-      // If it's a unique constraint violation, just return the story without saving
+
       if (saveError.code === '23505') {
         return new Response(JSON.stringify({
           title,
