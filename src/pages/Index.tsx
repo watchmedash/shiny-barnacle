@@ -69,6 +69,7 @@ const Index = () => {
                   content={story.content}
                   theme={story.theme}
                   createdAt={story.created_at}
+                  animate={true}
                 />
               </div>
             ) : (

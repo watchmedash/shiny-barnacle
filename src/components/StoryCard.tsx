@@ -2,19 +2,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, Skull, Volume2, VolumeX, Pause } from "lucide-react";
+import { Clock, Skull, Volume2, VolumeX, Pause, SkipForward } from "lucide-react";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
+import { useTypingAnimation } from "@/hooks/useTypingAnimation";
 
 interface StoryCardProps {
   title: string;
   content: string;
   theme: string;
   createdAt?: string;
+  animate?: boolean;
 }
 
-const StoryCard = ({ title, content, theme, createdAt }: StoryCardProps) => {
+const StoryCard = ({ title, content, theme, createdAt, animate = false }: StoryCardProps) => {
   const characterCount = content.length;
   const estimatedMinutes = Math.ceil(characterCount / 750);
+
+  const { displayedText, isTyping, skipAnimation } = useTypingAnimation({
+    text: content,
+    speed: 80,
+    enabled: animate,
+  });
+
   const {
     isPlaying,
     isPaused,
@@ -51,8 +60,20 @@ const StoryCard = ({ title, content, theme, createdAt }: StoryCardProps) => {
       <CardContent className="space-y-6">
         <div className="prose prose-invert max-w-none">
           <p className="font-serif text-foreground/90 leading-relaxed whitespace-pre-wrap text-base md:text-lg">
-            {content}
+            {displayedText}
+            {isTyping && <span className="inline-block w-0.5 h-5 bg-primary ml-0.5 animate-pulse" />}
           </p>
+          {isTyping && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={skipAnimation}
+              className="mt-2 h-7 px-2 text-xs font-mono text-muted-foreground"
+            >
+              <SkipForward className="w-3 h-3 mr-1" />
+              Skip
+            </Button>
+          )}
         </div>
 
         {/* Audio Controls */}
