@@ -45,11 +45,11 @@ function getRandomApiKey(): string {
     Deno.env.get('OPENAI_API_KEY_5'),
     Deno.env.get('OPENAI_API_KEY'), // fallback to original
   ].filter(Boolean) as string[];
-  
+
   if (keys.length === 0) {
     throw new Error('No OpenAI API keys configured');
   }
-  
+
   return keys[Math.floor(Math.random() * keys.length)];
 }
 
@@ -73,7 +73,7 @@ serve(async (req) => {
       .select('*', { count: 'exact', head: true });
 
     const storyCount = count || 0;
-    
+
     // Select a random theme, weighted by story count to ensure variety
     const randomTheme = themes[(storyCount + Math.floor(Math.random() * themes.length)) % themes.length];
     const uniqueSeed = Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -87,12 +87,14 @@ serve(async (req) => {
 5. Be completely original - never repeat plots, characters, or settings
 6. Use the theme "${randomTheme}" as inspiration but make it unique
 7. Write as "I" - the narrator experiencing these events
+8. FORMAT: Put each sentence on its own line with a blank line between sentences. This creates natural pauses for audio narration.
 
-IMPORTANT: 
+IMPORTANT:
 - Count characters carefully - stay within 1200-1500 characters
 - Make every word count - no filler
 - The twist must be genuinely surprising
 - Create a sense of dread and unease throughout
+- CRITICAL: Each sentence must be followed by TWO line breaks (empty line between sentences)
 
 Unique seed for this story: ${uniqueSeed}`;
 
@@ -174,9 +176,9 @@ Unique seed for this story: ${uniqueSeed}`;
       console.error('Error saving story:', saveError);
       // If it's a unique constraint violation, just return the story without saving
       if (saveError.code === '23505') {
-        return new Response(JSON.stringify({ 
-          title, 
-          content: storyContent, 
+        return new Response(JSON.stringify({
+          title,
+          content: storyContent,
           theme: randomTheme,
           id: 'temp-' + Date.now()
         }), {
